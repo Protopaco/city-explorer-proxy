@@ -1,64 +1,121 @@
 require('dotenv').config();
 
-const { execSync } = require('child_process');
-
-const fakeRequest = require('supertest');
-const app = require('../lib/app');
-const client = require('../lib/client');
+const { mungeLocation, mungeReviews, mungeWeather } = require('../lib/utils');
 
 describe('app routes', () => {
   describe('routes', () => {
-    let token;
-  
-    beforeAll(async done => {
-      execSync('npm run setup-db');
-  
-      client.connect();
-  
-      const signInData = await fakeRequest(app)
-        .post('/auth/signup')
-        .send({
-          email: 'jon@user.com',
-          password: '1234'
-        });
-      
-      token = signInData.body.token;
-  
-      return done();
-    });
-  
-    afterAll(done => {
-      return client.end(done);
-    });
 
-  test('returns animals', async() => {
 
-    const expectation = [
-      {
-        'id': 1,
-        'name': 'bessie',
-        'coolfactor': 3,
-        'owner_id': 1
-      },
-      {
-        'id': 2,
-        'name': 'jumpy',
-        'coolfactor': 4,
-        'owner_id': 1
-      },
-      {
-        'id': 3,
-        'name': 'spot',
-        'coolfactor': 10,
-        'owner_id': 1
+    test('test mungeLocation, returns object', () => {
+
+      const expectation = {
+        formatted_query: 'Portland, OR',
+        latitude: 55,
+        longitude: -122,
       }
-    ];
 
-    const data = await fakeRequest(app)
-      .get('/animals')
-      .expect('Content-Type', /json/)
-      .expect(200);
+      const data = [{
+        display_name: 'Portland, OR',
+        lat: 55,
+        lon: -122
+      },
+      {
+        display_name: 'Seattle, WA',
+        lat: 45,
+        lon: -121
+      }];
 
-    expect(data.body).toEqual(expectation);
+      expect(mungeLocation(data)).toEqual(expectation);
+
+    });
+
+    test('test mungeReviews, returns array of objects', () => {
+
+      const expectation = [{
+        name: 'Night Light Lounge',
+        image_url: 'www.nightlightlounge.net',
+        price: '$',
+        rating: 5,
+        url: 'www.nightlightlounge.net/review'
+      }, {
+        name: 'Pablito\'s Taqueria',
+        image_url: 'www.pablitostaqueria.com',
+        price: '$',
+        rating: 5,
+        url: 'www.pablitostaqueria.com/review'
+      }, {
+        name: 'Portland Drag Queen Brunch',
+        image_url: 'www.portlanddragqueenbrunch.com',
+        price: '$',
+        rating: 5,
+        url: 'www.portlanddragqueenbrunch.com/review',
+      }];
+
+      const data = [{
+        name: 'Night Light Lounge',
+        image_url: 'www.nightlightlounge.net',
+        price: '$',
+        rating: 5,
+        url: 'www.nightlightlounge.net/review',
+        owner: 'Paul Stevens'
+      }, {
+        name: 'Pablito\'s Taqueria',
+        image_url: 'www.pablitostaqueria.com',
+        price: '$',
+        rating: 5,
+        url: 'www.pablitostaqueria.com/review',
+        owner: 'Paul Stevens'
+      }, {
+        name: 'Portland Drag Queen Brunch',
+        image_url: 'www.portlanddragqueenbrunch.com',
+        price: '$',
+        rating: 5,
+        url: 'www.portlanddragqueenbrunch.com/review',
+        owner: 'Paul Stevens'
+
+      }];
+      expect(mungeReviews(data)).toEqual(expectation);
+
+    });
+
+
+    test('test mungeWeather, returns array of objects', () => {
+
+      const expectation = [{
+        forecast: 'cloudy with a chance of meatballs',
+        time: '11-10-2020'
+      }, {
+        forecast: 'red rain will come falling down',
+        time: '11-11-2020'
+      }, {
+        forecast: 'ain\'t no sunshine when she\'s gone',
+        time: '11-12-2020'
+      }];
+
+      const weatherObj = {
+        data:
+          [{
+            weather: {
+              description: 'cloudy with a chance of meatballs'
+            },
+            datetime: '11-10-2020'
+          }, {
+            weather: {
+              description: 'red rain will come falling down'
+            },
+            datetime: '11-11-2020'
+          }, {
+            weather: {
+              description: 'ain\'t no sunshine when she\'s gone'
+            },
+            datetime: '11-12-2020'
+          }]
+      };
+
+      expect(mungeWeather(weatherObj)).toEqual(expectation);
+
+    });
+
   });
 });
+
